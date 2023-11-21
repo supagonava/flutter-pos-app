@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "899636508246",
+    "project_id": "dimsummasterpos",
+    "storage_bucket": "dimsummasterpos.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:899636508246:android:5ad832ebaf7ff349e1adf7",
+        "android_client_info": {
+          "package_name": "com.supakornemch.dimsummaster"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBa-MVPt_qBaRXLB3Vi9DqGZ6HzglVODBU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
