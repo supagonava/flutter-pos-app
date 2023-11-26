@@ -16,8 +16,8 @@ class VerifyPhoneNumber extends SigninEvent {
 }
 
 class SignInWithOTP extends SigninEvent {
-  final String? otp; // Making otp nullable
-  final String? verificationId; // Making verificationId nullable
+  final String otp; // Making otp nullable
+  final String verificationId; // Making verificationId nullable
 
   const SignInWithOTP(this.otp, this.verificationId);
 

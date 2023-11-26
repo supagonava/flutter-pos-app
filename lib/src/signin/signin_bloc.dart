@@ -9,9 +9,23 @@ class SigninBloc extends Bloc<SigninEvent, SigninState> {
 
   SigninBloc() : super(SigninInitial()) {
     on<VerifyPhoneNumber>(verifyPhoneNumber);
+    on<SignInWithOTP>(signInWithOTP);
   }
 
-  Future<void> verifyPhoneNumber(VerifyPhoneNumber event, Emitter<SigninState> emit) async {
+  signInWithOTP(SignInWithOTP event, Emitter<SigninState> emit) async {
+    try {
+      final AuthCredential credential = PhoneAuthProvider.credential(
+        verificationId: event.verificationId,
+        smsCode: event.otp,
+      );
+      UserCredential userCredential = await auth.signInWithCredential(credential);
+      emit(SigninSuccess(userCredential.user));
+    } catch (e) {
+      emit(SigninFailure(e.toString()));
+    }
+  }
+
+  verifyPhoneNumber(VerifyPhoneNumber event, Emitter<SigninState> emit) async {
     String phoneNumber = event.phoneNumber ?? '';
     if (phoneNumber.startsWith("0")) {
       phoneNumber = "+66${phoneNumber.substring(1)}";

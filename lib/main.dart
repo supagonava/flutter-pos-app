@@ -1,3 +1,4 @@
+import 'package:dimsummaster/src/posshop/index.dart';
 import 'package:dimsummaster/src/signin/signin_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -13,5 +14,6 @@ void main() async {
   );
   runApp(MultiBlocProvider(providers: [
     BlocProvider(create: (context) => SigninBloc()),
+    BlocProvider(create: (context) => PosshopBloc()),
   ], child: MyApp()));
 }

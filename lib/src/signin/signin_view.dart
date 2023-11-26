@@ -1,8 +1,10 @@
+import 'package:dimsummaster/src/posshop/posshop_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'index.dart';
 
 class SignInView extends StatelessWidget {
+  static const routeName = "/signin";
   const SignInView({super.key});
 
   @override
@@ -15,8 +17,9 @@ class SignInView extends StatelessWidget {
       listener: (context, state) {
         if (state is SigninSuccess) {
           Navigator.of(context).pushReplacementNamed('/');
+        } else if (state is SigninSuccess) {
+          Navigator.of(context).pushNamedAndRemoveUntil(PosShopView.routeName, (route) => false);
         }
-        // Handle other states like error state or code sent state if needed
       },
       child: Scaffold(
         appBar: AppBar(
@@ -41,7 +44,7 @@ class SignInView extends StatelessWidget {
                           decoration: InputDecoration(border: OutlineInputBorder(), labelText: "กรอก OTP"),
                         ),
                         ElevatedButton(
-                          onPressed: () => BlocProvider.of<SigninBloc>(context).add(SignInWithOTP(otpTextInputController.text, state.verificationId)),
+                          onPressed: () => {BlocProvider.of<SigninBloc>(context).add(SignInWithOTP(otpTextInputController.text, state.verificationId))},
                           child: const Text("ยืนยัน OTP"),
                         )
                       ],
