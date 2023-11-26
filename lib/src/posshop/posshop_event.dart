@@ -8,10 +8,17 @@ abstract class PosshopEvent extends Equatable {
 }
 
 // Setting Event
-final class SwitchShopEvent extends PosshopEvent {
+final class OpenPosPageEvent extends PosshopEvent {
   final String? shopCode;
-  const SwitchShopEvent(this.shopCode);
+  const OpenPosPageEvent(this.shopCode);
 
+  @override
+  List<Object?> get props => [shopCode];
+}
+
+final class OpenSettingPageEvent extends PosshopEvent {
+  final String? shopCode;
+  const OpenSettingPageEvent(this.shopCode);
   @override
   List<Object?> get props => [shopCode];
 }
@@ -27,8 +34,9 @@ final class UpdateUsersRoleInShopEvent extends PosshopEvent {
 final class UpdateProductsInShopEvent extends PosshopEvent {
   final List<dynamic>? products;
   final String shopCode;
+  final bool isSubmit;
 
-  const UpdateProductsInShopEvent(this.products, this.shopCode);
+  const UpdateProductsInShopEvent({this.products, required this.shopCode, required this.isSubmit});
 
   @override
   List<Object?> get props => [products];

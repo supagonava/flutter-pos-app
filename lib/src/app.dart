@@ -4,6 +4,14 @@ import 'package:dimsummaster/src/posshop/posshop_view.dart';
 import 'package:dimsummaster/src/signin/signin_view.dart';
 
 const defaultButtonTextStyle = TextStyle(fontSize: 12);
+var deleteButtonStyle = ElevatedButton.styleFrom(
+  backgroundColor: Colors.red.shade200,
+  foregroundColor: Colors.red.shade800,
+);
+var successButtonStyle = ElevatedButton.styleFrom(
+  backgroundColor: Colors.green.shade200,
+  foregroundColor: Colors.green.shade800,
+);
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});

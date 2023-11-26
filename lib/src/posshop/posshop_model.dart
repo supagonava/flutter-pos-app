@@ -1,24 +1,25 @@
 import 'dart:ffi';
 
 class Shop {
-  final String? code;
-  final String? name;
+  String? code;
+  String? name;
 
-  const Shop({this.code, this.name});
+  Shop({this.code, this.name});
 }
 
 class Product {
-  final String? name;
-  final Float? price;
-  final Map<String, dynamic>? optionalData;
+  String? name;
+  double? price;
+  Map<String, dynamic>? optionalData;
 
-  const Product({this.name, this.price, this.optionalData});
+  Product({this.name, this.optionalData, this.price});
+  Map<String, dynamic> toMap() => ({"name": name, "price": price});
 }
 
 class Cart {
-  final String? shopCode;
-  final Product? product;
-  final Int? quantity;
+  String? shopCode;
+  Product? product;
+  Int? quantity;
 
-  const Cart({this.shopCode, this.product, this.quantity});
+  Cart({this.shopCode, this.product, this.quantity});
 }

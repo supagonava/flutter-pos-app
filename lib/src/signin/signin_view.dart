@@ -41,6 +41,8 @@ class SignInView extends StatelessWidget {
                       children: [
                         TextField(
                           controller: otpTextInputController,
+                          keyboardType: TextInputType.number,
+                          maxLength: 6,
                           decoration: InputDecoration(border: OutlineInputBorder(), labelText: "กรอก OTP"),
                         ),
                         ElevatedButton(
@@ -56,6 +58,7 @@ class SignInView extends StatelessWidget {
                         TextField(
                           controller: phoneTextInputController,
                           decoration: InputDecoration(border: OutlineInputBorder(), labelText: "กรอกเบอร์ 10 หลัก"),
+                          keyboardType: TextInputType.number,
                           maxLength: 10,
                         ),
                         ElevatedButton(

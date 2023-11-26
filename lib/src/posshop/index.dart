@@ -29,7 +29,7 @@ const Map<int, String> TABLE_NAMES = {
   20: "โต๊ะ 20",
 };
 
-const List<Shop> SHOP_BRANCH = [
+final List<Shop> SHOP_BRANCH = [
   Shop(code: "dimsumphutthabat", name: "ติ่มซำผึ้งน้อย พระบาท"),
   Shop(code: "pzbannoi", name: "พิซซ่า บ้านอ้อย"),
 ];
