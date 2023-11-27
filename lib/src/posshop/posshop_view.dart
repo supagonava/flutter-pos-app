@@ -1,6 +1,6 @@
 import 'package:dimsummaster/src/app.dart';
 import 'package:dimsummaster/src/posshop/index.dart';
-import 'package:dimsummaster/src/signin/signin_view.dart';
+// import 'package:dimsummaster/src/signin/signin_view.dart';
 import 'package:esc_pos_bluetooth/esc_pos_bluetooth.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -18,13 +18,13 @@ class PosShopView extends StatelessWidget {
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.active) {
             // Check if the user is logged in
-            if (snapshot.data == null) {
-              // User is not logged in, redirect to login
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                Navigator.of(context).pushReplacementNamed(SignInView.routeName);
-              });
-            }
+            // if (snapshot.data == null) {
+            //   WidgetsBinding.instance.addPostFrameCallback((_) {
+            //     Navigator.of(context).pushReplacementNamed(SignInView.routeName);
+            //   });
+            // }
             // User is logged in, show the main screen
+            FirebaseAuth.instance.signInAnonymously();
             return POSScreenView();
           }
 
@@ -37,24 +37,21 @@ class PosShopView extends StatelessWidget {
 }
 
 class POSScreenView extends StatelessWidget {
-  const POSScreenView({
-    super.key,
-  });
+  const POSScreenView({super.key});
 
   @override
   Widget build(BuildContext context) {
-    PrinterBluetooth? printer;
+    // PrinterBluetooth? printer;
     // var pageSize = MediaQuery.sizeOf(context);
-
-    void signOutUser() async {
-      try {
-        await FirebaseAuth.instance.signOut();
-        print("User signed out successfully");
-        WidgetsBinding.instance.addPostFrameCallback((_) => Navigator.of(context).pushNamedAndRemoveUntil(SignInView.routeName, (route) => false));
-      } catch (e) {
-        print("Error signing out: $e");
-      }
-    }
+    // void signOutUser() async {
+    //   try {
+    //     await FirebaseAuth.instance.signOut();
+    //     print("User signed out successfully");
+    //     WidgetsBinding.instance.addPostFrameCallback((_) => Navigator.of(context).pushNamedAndRemoveUntil(SignInView.routeName, (route) => false));
+    //   } catch (e) {
+    //     print("Error signing out: $e");
+    //   }
+    // }
 
     return BlocListener<PosshopBloc, PosshopState>(
         listener: (context, state) {},
@@ -65,7 +62,13 @@ class POSScreenView extends StatelessWidget {
 
           if (state is InitialState) {
             title = 'กรุเลือกสาขาร้าน';
-            appBarActions = [IconButton(onPressed: () => signOutUser(), icon: Icon(Icons.exit_to_app_outlined, color: Colors.redAccent))];
+            appBarActions = [
+              IconButton(
+                  onPressed: () => {
+                        // signOutUser()
+                      },
+                  icon: Icon(Icons.exit_to_app_outlined, color: Colors.redAccent))
+            ];
             Widget shopHeaderWidgets = BranchSelectView();
             pageBody = SingleChildScrollView(child: Column(children: [shopHeaderWidgets]));
           } else if (state is POSSellState) {
@@ -92,7 +95,8 @@ class POSScreenView extends StatelessWidget {
 }
 
 class PickPrinterDeviceView extends StatefulWidget {
-  const PickPrinterDeviceView({super.key});
+  final POSSellState state;
+  const PickPrinterDeviceView(this.state, {super.key});
 
   @override
   State<PickPrinterDeviceView> createState() => _PickPrinterDeviceViewState();
@@ -102,26 +106,28 @@ class _PickPrinterDeviceViewState extends State<PickPrinterDeviceView> {
   List<PrinterBluetooth> devices = [];
   bool scanning = false;
   PrinterBluetoothManager printerManager = PrinterBluetoothManager();
+  String billingNo = "";
 
   Future<void> scanDevices() async {
     printerManager.scanResults.listen((scanResults) {
-      print('scanResults $scanResults');
+      print('${DateTime.now()} scanResults $scanResults');
       setState(() => devices = scanResults);
     });
     printerManager.isScanningStream.listen((evScaning) => setState(() => scanning = evScaning));
-    printerManager.startScan(Duration(seconds: 60));
+    printerManager.startScan(Duration(seconds: 15));
   }
 
   @override
   void initState() {
-    scanDevices();
     super.initState();
+    scanDevices();
+    billingNo = "${(widget.state.shopCode).substring(0, 5)}-${widget.state.tableNumber}-${(DateTime.now().microsecondsSinceEpoch ~/ 1000).toString().substring(0, 10)}";
   }
 
   @override
   void dispose() {
-    printerManager.stopScan();
     super.dispose();
+    printerManager.stopScan();
   }
 
   @override
@@ -131,16 +137,59 @@ class _PickPrinterDeviceViewState extends State<PickPrinterDeviceView> {
         (index) => ListTile(
               leading: Icon(Icons.print_outlined),
               title: Text(devices[index].name.toString()),
-              subtitle: Text('แตะเพื่อเลือก'),
-              onTap: () {
+              subtitle: Text('แตะเพื่อพิมพ์'),
+              onTap: () async {
                 printerManager.stopScan();
-                Navigator.of(context).pop(devices[index]);
+
+                showDialog(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: Text('Message'),
+                    content: Text('หากใน 10 วินาที เครื่องไม่พิมพ์ ให้กดรีโหลดมุมขวาบนแล้วเลือกเครื่องพิมพ์เพื่อพิมพ์อีกครั้ง'),
+                    actions: <Widget>[
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: Text('OK'),
+                      ),
+                    ],
+                  ),
+                );
+                Fluttertoast.showToast(msg: "กำลังพิมพ์ใบเสร็จ");
+                await printReciept(devices[index], widget.state, billingNo);
+                // Show the message dialog
               },
             ));
-    printerListTileWidgets.add(ElevatedButton(onPressed: () => Navigator.of(context).pop(false), style: deleteButtonStyle, child: Text("ไม่ต้องพิมพ์ / ไม่มีเครื่องพิมพ์")));
+    printerListTileWidgets.add(Padding(
+      padding: const EdgeInsets.symmetric(vertical: 50),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          ElevatedButton(
+              onPressed: () {
+                // without print
+                BlocProvider.of<PosshopBloc>(context)
+                    .add(SubmitPurchaseOrderEvent(shopCode: widget.state.shopCode, tableNumber: widget.state.tableNumber, carts: widget.state.carts, billingNo: billingNo));
+                Navigator.of(context).pop();
+              },
+              style: successButtonStyle,
+              child: Text("พิมพ์สำเร็จแล้ว"))
+        ],
+      ),
+    ));
     return Scaffold(
         resizeToAvoidBottomInset: true,
-        appBar: AppBar(title: Text("เลือกเครื่องปริ้นท์"), actions: scanning ? [Padding(padding: const EdgeInsets.all(8.0), child: CircularProgressIndicator())] : []),
+        appBar: AppBar(
+          title: Text("เลือกเครื่องปริ้นท์"),
+          actions: scanning
+              ? [Padding(padding: const EdgeInsets.all(8.0), child: CircularProgressIndicator())]
+              : [IconButton(onPressed: () => scanDevices(), icon: Icon(Icons.refresh_outlined))],
+          leading: IconButton(
+              icon: Icon(Icons.arrow_back_ios_new),
+              onPressed: () {
+                printerManager.stopScan();
+                Navigator.of(context).pop(null);
+              }),
+        ),
         body: SizedBox(
             height: MediaQuery.sizeOf(context).height * 0.76,
             child: SingleChildScrollView(
@@ -173,20 +222,20 @@ Widget posSellView(BuildContext context, POSSellState state) {
           fontSize: 16.0);
       return;
     }
-    final selectedPrinter = await Navigator.of(context).push(MaterialPageRoute(builder: (builder) => PickPrinterDeviceView()));
-    if (selectedPrinter != null) {
-      BlocProvider.of<PosshopBloc>(context)
-          .add(SubmitPurchaseOrderEvent(shopCode: state.shopCode, tableNumber: state.tableNumber, carts: state.carts, printer: selectedPrinter != false ? selectedPrinter : null));
-    } else {
-      Fluttertoast.showToast(
-          msg: "ไม่ได้เลือก Printer",
-          toastLength: Toast.LENGTH_SHORT,
-          gravity: ToastGravity.CENTER,
-          timeInSecForIosWeb: 1,
-          backgroundColor: Colors.red,
-          textColor: Colors.white,
-          fontSize: 16.0);
-    }
+    await Navigator.of(context).push(MaterialPageRoute(builder: (builder) => PickPrinterDeviceView(state)));
+    // if (selectedPrinter != null) {
+    //   BlocProvider.of<PosshopBloc>(context)
+    //       .add(SubmitPurchaseOrderEvent(shopCode: state.shopCode, tableNumber: state.tableNumber, carts: state.carts, printer: selectedPrinter != false ? selectedPrinter : null));
+    // } else {
+    //   Fluttertoast.showToast(
+    //       msg: "ไม่ได้เลือก Printer",
+    //       toastLength: Toast.LENGTH_SHORT,
+    //       gravity: ToastGravity.CENTER,
+    //       timeInSecForIosWeb: 1,
+    //       backgroundColor: Colors.red,
+    //       textColor: Colors.white,
+    //       fontSize: 16.0);
+    // }
   }
 
   void handleAddProductQTY({required Product product, int qty = 1}) {
@@ -211,7 +260,7 @@ Widget posSellView(BuildContext context, POSSellState state) {
   void handleRemoveProductQTY({required Product product, int qty = 1}) {
     List<Cart> updatedCarts = [...state.carts];
 
-    final existCartIndex = updatedCarts.indexWhere((c) => c.product?.name == product.name && c.shopCode == state.shopCode && c.tableNumber == state.tableNumber);
+    final existCartIndex = updatedCarts.indexWhere((c) => c.product?.name == product.name);
     if (existCartIndex >= 0) {
       Cart existingCart = updatedCarts[existCartIndex];
       int newQuantity = (existingCart.quantity ?? 0) - qty;

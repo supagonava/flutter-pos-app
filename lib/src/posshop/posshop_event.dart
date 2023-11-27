@@ -67,10 +67,11 @@ final class UpdateTableCartsEvent extends PosshopEvent {
 
 final class SubmitPurchaseOrderEvent extends PosshopEvent {
   final String shopCode;
+  final String billingNo;
   final int tableNumber;
   final List<Cart> carts;
   final PrinterBluetooth? printer;
-  const SubmitPurchaseOrderEvent({required this.shopCode, required this.tableNumber, required this.carts, this.printer});
+  const SubmitPurchaseOrderEvent({required this.shopCode, required this.tableNumber, required this.carts, this.printer, required this.billingNo});
   @override
   List<Object?> get props => [shopCode, tableNumber, carts];
 }

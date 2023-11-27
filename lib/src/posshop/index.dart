@@ -30,8 +30,8 @@ const Map<int, String> TABLE_NAMES = {
 };
 
 final List<Shop> SHOP_BRANCH = [
-  Shop(code: "dimsumphutthabat", name: "ติ่มซำผึ้งน้อย พระบาท"),
-  Shop(code: "pzbannoi", name: "พิซซ่า บ้านอ้อย"),
+  Shop(code: "dimsu", name: "ติ่มซำผึ้งน้อย พระบาท"),
+  Shop(code: "pzban", name: "พิซซ่า บ้านอ้อย"),
 ];
 
 const String OWNER = "Owner";

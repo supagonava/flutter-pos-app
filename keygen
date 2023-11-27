@@ -1,0 +1,2 @@
+keytool -genkey -v -keystore supakornemch.keystore -alias supakorn -keyalg RSA -keysize 2048 -validity 10000
+keytool -list -v -keystore supakornemch.keystore -alias supakorn -storepass lovezaup001 -keypass lovezaup001
