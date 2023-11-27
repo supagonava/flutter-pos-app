@@ -4,6 +4,7 @@ import 'package:dimsummaster/src/posshop/index.dart';
 import 'package:esc_pos_bluetooth/esc_pos_bluetooth.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/services.dart';
 import "package:flutter_bloc/flutter_bloc.dart";
 import 'package:fluttertoast/fluttertoast.dart';
 
@@ -24,7 +25,7 @@ class PosShopView extends StatelessWidget {
             //   });
             // }
             // User is logged in, show the main screen
-            FirebaseAuth.instance.signInAnonymously();
+            // FirebaseAuth.instance.signInAnonymously();
             return POSScreenView();
           }
 
@@ -62,13 +63,7 @@ class POSScreenView extends StatelessWidget {
 
           if (state is InitialState) {
             title = 'กรุเลือกสาขาร้าน';
-            appBarActions = [
-              IconButton(
-                  onPressed: () => {
-                        // signOutUser()
-                      },
-                  icon: Icon(Icons.exit_to_app_outlined, color: Colors.redAccent))
-            ];
+            appBarActions = [IconButton(onPressed: () => SystemNavigator.pop(), icon: Icon(Icons.exit_to_app_outlined, color: Colors.redAccent))];
             Widget shopHeaderWidgets = BranchSelectView();
             pageBody = SingleChildScrollView(child: Column(children: [shopHeaderWidgets]));
           } else if (state is POSSellState) {
@@ -460,26 +455,40 @@ class SettingProductView extends StatelessWidget {
 }
 
 class BranchSelectView extends StatelessWidget {
-  const BranchSelectView({
-    super.key,
-  });
+  const BranchSelectView({super.key});
 
   @override
   Widget build(BuildContext context) {
+    TextEditingController codeInputTxtController = TextEditingController();
     return Padding(
-        padding: const EdgeInsets.all(4),
-        child: Wrap(
-            children: List.generate(
-                SHOP_BRANCH.length,
-                (index) => Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 1, horizontal: 2),
-                      child: ElevatedButton(
-                          onPressed: () => BlocProvider.of<PosshopBloc>(context).add(OpenPosPageEvent(shopCode: SHOP_BRANCH[index].code)),
-                          child: Text(
-                            "${SHOP_BRANCH[index].name}",
-                            overflow: TextOverflow.fade,
-                            style: defaultButtonTextStyle,
-                          )),
-                    ))));
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          children: [
+            TextField(controller: codeInputTxtController, decoration: InputDecoration(hintText: "กรอกโค้ดร้าน"), maxLength: 5),
+            ElevatedButton(
+                onPressed: (() {
+                  // print(codeInputTxtController.text);
+                  if (SHOP_BRANCH.indexWhere((s) => s.code == codeInputTxtController.text) >= 0) {
+                    BlocProvider.of<PosshopBloc>(context).add(OpenPosPageEvent(shopCode: codeInputTxtController.text));
+                  } else {
+                    Fluttertoast.showToast(msg: "โค้ดไม่ถูกต้อง");
+                  }
+                }),
+                child: Text("เข้าสู่ระบบ"))
+            // Wrap(
+            //     children: List.generate(
+            //         SHOP_BRANCH.length,
+            //         (index) => Padding(
+            //               padding: const EdgeInsets.symmetric(vertical: 1, horizontal: 2),
+            //               child: ElevatedButton(
+            //                   onPressed: () => BlocProvider.of<PosshopBloc>(context).add(OpenPosPageEvent(shopCode: SHOP_BRANCH[index].code)),
+            //                   child: Text(
+            //                     "${SHOP_BRANCH[index].name}",
+            //                     overflow: TextOverflow.fade,
+            //                     style: defaultButtonTextStyle,
+            //                   )),
+            //             ))),
+          ],
+        ));
   }
 }
