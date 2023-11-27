@@ -1,4 +1,7 @@
+import 'package:dimsummaster/src/posshop/posshop_model.dart';
 import 'package:equatable/equatable.dart';
+import 'package:esc_pos_bluetooth/esc_pos_bluetooth.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 abstract class PosshopEvent extends Equatable {
   const PosshopEvent();
@@ -10,7 +13,8 @@ abstract class PosshopEvent extends Equatable {
 // Setting Event
 final class OpenPosPageEvent extends PosshopEvent {
   final String? shopCode;
-  const OpenPosPageEvent(this.shopCode);
+  final int? tableNo;
+  const OpenPosPageEvent({this.shopCode, this.tableNo});
 
   @override
   List<Object?> get props => [shopCode];
@@ -24,7 +28,7 @@ final class OpenSettingPageEvent extends PosshopEvent {
 }
 
 final class UpdateUsersRoleInShopEvent extends PosshopEvent {
-  final List<dynamic>? users;
+  final List<User>? users;
   const UpdateUsersRoleInShopEvent(this.users);
 
   @override
@@ -32,7 +36,7 @@ final class UpdateUsersRoleInShopEvent extends PosshopEvent {
 }
 
 final class UpdateProductsInShopEvent extends PosshopEvent {
-  final List<dynamic>? products;
+  final List<Product>? products;
   final String shopCode;
   final bool isSubmit;
 
@@ -52,19 +56,21 @@ final class SwitchTableEvent extends PosshopEvent {
 }
 
 final class UpdateTableCartsEvent extends PosshopEvent {
+  final String shopCode;
   final int tableNumber;
-  final List<dynamic> products;
-  const UpdateTableCartsEvent(this.tableNumber, this.products);
+  final List<Cart> carts;
+  const UpdateTableCartsEvent({required this.shopCode, required this.tableNumber, required this.carts});
 
   @override
-  List<Object?> get props => [products];
+  List<Object?> get props => [shopCode, tableNumber, carts];
 }
 
 final class SubmitPurchaseOrderEvent extends PosshopEvent {
+  final String shopCode;
   final int tableNumber;
-  final List<dynamic> products;
-  const SubmitPurchaseOrderEvent(this.tableNumber, this.products);
-
+  final List<Cart> carts;
+  final PrinterBluetooth? printer;
+  const SubmitPurchaseOrderEvent({required this.shopCode, required this.tableNumber, required this.carts, this.printer});
   @override
-  List<Object?> get props => [products];
+  List<Object?> get props => [shopCode, tableNumber, carts];
 }

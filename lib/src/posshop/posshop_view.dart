@@ -1,9 +1,11 @@
 import 'package:dimsummaster/src/app.dart';
 import 'package:dimsummaster/src/posshop/index.dart';
 import 'package:dimsummaster/src/signin/signin_view.dart';
+import 'package:esc_pos_bluetooth/esc_pos_bluetooth.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import "package:flutter_bloc/flutter_bloc.dart";
+import 'package:fluttertoast/fluttertoast.dart';
 
 class PosShopView extends StatelessWidget {
   static const routeName = "/home";
@@ -41,6 +43,7 @@ class POSScreenView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    PrinterBluetooth? printer;
     // var pageSize = MediaQuery.sizeOf(context);
 
     void signOutUser() async {
@@ -69,19 +72,242 @@ class POSScreenView extends StatelessWidget {
             title = '${SHOP_BRANCH.firstWhere((b) => b.code == state.shopCode).name}';
             appBarActions = [
               IconButton(onPressed: () => BlocProvider.of<PosshopBloc>(context).add(OpenSettingPageEvent(state.shopCode)), icon: Icon(Icons.settings)),
-              IconButton(onPressed: () => BlocProvider.of<PosshopBloc>(context).add(OpenPosPageEvent(null)), icon: Icon(Icons.arrow_back_ios)),
+              IconButton(onPressed: () => BlocProvider.of<PosshopBloc>(context).add(OpenPosPageEvent(shopCode: null)), icon: Icon(Icons.arrow_back_ios)),
             ];
+            pageBody = posSellView(context, state);
           } else if (state is SettingPageState) {
             title = 'ตั้งค่าสินค้า';
             appBarActions = [
-              IconButton(onPressed: () => BlocProvider.of<PosshopBloc>(context).add(OpenPosPageEvent(state.shopCode)), icon: Icon(Icons.arrow_back_ios)),
+              IconButton(onPressed: () => BlocProvider.of<PosshopBloc>(context).add(OpenPosPageEvent(shopCode: state.shopCode)), icon: Icon(Icons.arrow_back_ios)),
             ];
             pageBody = SettingProductView();
           }
-
-          return Scaffold(appBar: AppBar(title: Text(title), actions: appBarActions), body: pageBody);
+          return Scaffold(
+            appBar: AppBar(title: Text(title), actions: appBarActions),
+            body: pageBody,
+            resizeToAvoidBottomInset: true,
+          );
         }));
   }
+}
+
+class PickPrinterDeviceView extends StatefulWidget {
+  const PickPrinterDeviceView({super.key});
+
+  @override
+  State<PickPrinterDeviceView> createState() => _PickPrinterDeviceViewState();
+}
+
+class _PickPrinterDeviceViewState extends State<PickPrinterDeviceView> {
+  List<PrinterBluetooth> devices = [];
+  bool scanning = false;
+  PrinterBluetoothManager printerManager = PrinterBluetoothManager();
+
+  Future<void> scanDevices() async {
+    printerManager.scanResults.listen((scanResults) {
+      print('scanResults $scanResults');
+      setState(() => devices = scanResults);
+    });
+    printerManager.isScanningStream.listen((evScaning) => setState(() => scanning = evScaning));
+    printerManager.startScan(Duration(seconds: 60));
+  }
+
+  @override
+  void initState() {
+    scanDevices();
+    super.initState();
+  }
+
+  @override
+  void dispose() {
+    printerManager.stopScan();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final List<Widget> printerListTileWidgets = List.generate(
+        devices.length,
+        (index) => ListTile(
+              leading: Icon(Icons.print_outlined),
+              title: Text(devices[index].name.toString()),
+              subtitle: Text('แตะเพื่อเลือก'),
+              onTap: () {
+                printerManager.stopScan();
+                Navigator.of(context).pop(devices[index]);
+              },
+            ));
+    printerListTileWidgets.add(ElevatedButton(onPressed: () => Navigator.of(context).pop(false), style: deleteButtonStyle, child: Text("ไม่ต้องพิมพ์ / ไม่มีเครื่องพิมพ์")));
+    return Scaffold(
+        resizeToAvoidBottomInset: true,
+        appBar: AppBar(title: Text("เลือกเครื่องปริ้นท์"), actions: scanning ? [Padding(padding: const EdgeInsets.all(8.0), child: CircularProgressIndicator())] : []),
+        body: SizedBox(
+            height: MediaQuery.sizeOf(context).height * 0.76,
+            child: SingleChildScrollView(
+              child: Column(mainAxisAlignment: MainAxisAlignment.start, children: printerListTileWidgets),
+            )));
+  }
+}
+
+Widget posSellView(BuildContext context, POSSellState state) {
+  final Size pageSize = getPageSize(context);
+
+  int totalQTY = 0;
+  double totalAmount = 0;
+  List<Widget> productListPOSWidget = [];
+
+  void handleClearCarts() {
+    BlocProvider.of<PosshopBloc>(context).add(UpdateTableCartsEvent(carts: [], shopCode: state.shopCode, tableNumber: state.tableNumber));
+  }
+
+  void handleSubmitPurchase() async {
+    print("submit purchased");
+    if (state.carts.isEmpty) {
+      Fluttertoast.showToast(
+          msg: "สินค้าในตะกร้าว่างเปล่า",
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.CENTER,
+          timeInSecForIosWeb: 1,
+          backgroundColor: Colors.red,
+          textColor: Colors.white,
+          fontSize: 16.0);
+      return;
+    }
+    final selectedPrinter = await Navigator.of(context).push(MaterialPageRoute(builder: (builder) => PickPrinterDeviceView()));
+    if (selectedPrinter != null) {
+      BlocProvider.of<PosshopBloc>(context)
+          .add(SubmitPurchaseOrderEvent(shopCode: state.shopCode, tableNumber: state.tableNumber, carts: state.carts, printer: selectedPrinter != false ? selectedPrinter : null));
+    } else {
+      Fluttertoast.showToast(
+          msg: "ไม่ได้เลือก Printer",
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.CENTER,
+          timeInSecForIosWeb: 1,
+          backgroundColor: Colors.red,
+          textColor: Colors.white,
+          fontSize: 16.0);
+    }
+  }
+
+  void handleAddProductQTY({required Product product, int qty = 1}) {
+    List<Cart> updatedCarts = [...state.carts];
+
+    final existCartIndex = updatedCarts.indexWhere((c) => c.product?.name == product.name && c.shopCode == state.shopCode && c.tableNumber == state.tableNumber);
+    if (existCartIndex >= 0) {
+      Cart existingCart = updatedCarts[existCartIndex];
+      updatedCarts[existCartIndex] = Cart(
+        product: existingCart.product,
+        quantity: (existingCart.quantity ?? 0) + qty,
+        shopCode: existingCart.shopCode,
+        tableNumber: existingCart.tableNumber,
+      );
+    } else {
+      updatedCarts.add(Cart(product: product, quantity: qty, shopCode: state.shopCode, tableNumber: state.tableNumber));
+    }
+
+    BlocProvider.of<PosshopBloc>(context).add(UpdateTableCartsEvent(carts: updatedCarts, shopCode: state.shopCode, tableNumber: state.tableNumber));
+  }
+
+  void handleRemoveProductQTY({required Product product, int qty = 1}) {
+    List<Cart> updatedCarts = [...state.carts];
+
+    final existCartIndex = updatedCarts.indexWhere((c) => c.product?.name == product.name && c.shopCode == state.shopCode && c.tableNumber == state.tableNumber);
+    if (existCartIndex >= 0) {
+      Cart existingCart = updatedCarts[existCartIndex];
+      int newQuantity = (existingCart.quantity ?? 0) - qty;
+      if (newQuantity > 0) {
+        updatedCarts[existCartIndex] = Cart(
+          product: existingCart.product,
+          quantity: newQuantity,
+          shopCode: existingCart.shopCode,
+          tableNumber: existingCart.tableNumber,
+        );
+      } else {
+        updatedCarts.removeAt(existCartIndex);
+      }
+    }
+
+    BlocProvider.of<PosshopBloc>(context).add(UpdateTableCartsEvent(carts: updatedCarts, shopCode: state.shopCode, tableNumber: state.tableNumber));
+  }
+
+  for (var product in (state.products)) {
+    int cartItemIndex = state.carts.indexWhere((ct) => ct.product?.name == product.name);
+    Cart? cartItem = cartItemIndex >= 0 ? state.carts[cartItemIndex] : null;
+    productListPOSWidget.add(Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12.0),
+      child: ListTile(
+        title: Text("${product.name}"),
+        subtitle: Text("จำนวนชิ้น ${cartItem?.quantity ?? 0} รวม ${(cartItem?.quantity ?? 0) * (cartItem?.product?.price ?? 0)} บาท"),
+        trailing: SizedBox(
+          height: 50,
+          width: 100,
+          child: Flex(
+            direction: Axis.horizontal,
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              IconButton(onPressed: () => handleAddProductQTY(product: product), icon: Icon(Icons.plus_one), style: successButtonStyle),
+              IconButton(onPressed: () => handleRemoveProductQTY(product: product), icon: Icon(Icons.exposure_minus_1), style: deleteButtonStyle),
+            ],
+          ),
+        ),
+      ),
+    ));
+  }
+
+  if (state.carts.isNotEmpty) {
+    totalQTY = state.carts.map((c) => (c.quantity ?? 0)).reduce((qty, prevQty) => qty + prevQty);
+    totalAmount = double.tryParse(state.carts.map((c) => (c.quantity ?? 0) * (c.product?.price ?? 0)).reduce((qty, prevQty) => qty + prevQty).toString()) ?? 0;
+  }
+
+  return Padding(
+    padding: const EdgeInsets.all(16),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Flex(direction: Axis.horizontal, children: [Text("ที่กำลังบริการ :")]),
+        ),
+        SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+                children: List.generate(
+                    TABLE_NAMES.entries.length,
+                    (index) => ElevatedButton(
+                          style: index == state.tableNumber ? successButtonStyle : null,
+                          onPressed: () => BlocProvider.of<PosshopBloc>(context).add(OpenPosPageEvent(shopCode: state.shopCode, tableNo: index)),
+                          child: Text(TABLE_NAMES[index]!),
+                        )))),
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Flex(direction: Axis.horizontal, children: [Text("รวมชิ้น : $totalQTY ชิ้น")]),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Flex(direction: Axis.horizontal, children: [Text("รวมบาท : $totalAmount THB")]),
+        ),
+        Divider(),
+        SizedBox(
+          height: pageSize.height * 0.5,
+          width: pageSize.width,
+          child: SingleChildScrollView(child: Column(children: productListPOSWidget)),
+        ),
+        Divider(),
+        Flex(direction: Axis.horizontal, mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+          ElevatedButton(
+            onPressed: () => handleSubmitPurchase(),
+            style: successButtonStyle,
+            child: SizedBox(width: pageSize.width * 0.3, child: Text("ชำระเงิน")),
+          ),
+          ElevatedButton(
+            onPressed: () => handleClearCarts(),
+            style: deleteButtonStyle,
+            child: SizedBox(width: pageSize.width * 0.3, child: Text("ยกเลิก")),
+          )
+        ]),
+      ],
+    ),
+  );
 }
 
 class SettingProductView extends StatelessWidget {
@@ -103,84 +329,83 @@ class SettingProductView extends StatelessWidget {
       textControllers.add(item);
     }
 
-    submitChangeProducts({isSubmit = false}) {
+    handleSubmitChangeProducts({isSubmit = false}) {
       BlocProvider.of<PosshopBloc>(context).add(UpdateProductsInShopEvent(shopCode: shopCode, isSubmit: isSubmit, products: productItems));
     }
 
     handelClickAddProduct() {
       var nameTextEditer = TextEditingController(text: "สินค้าใหม่ ${productItems.length + 1}");
       var priceTextEditer = TextEditingController(text: "0.00");
-      Product product = Product(name: nameTextEditer.text, price: double.tryParse(priceTextEditer.text), optionalData: {'disabled': true});
+      Product product = Product(name: nameTextEditer.text, price: double.tryParse(priceTextEditer.text));
       productItems.add(product);
-      submitChangeProducts();
+      handleSubmitChangeProducts();
     }
 
     handleDeleteProduct(int index) {
       productItems.removeAt(index);
       textControllers.removeAt(index);
-      submitChangeProducts();
+      handleSubmitChangeProducts();
     }
 
-    return Flex(
-      direction: Axis.vertical,
-      children: [
-        Flex(
-          direction: Axis.horizontal,
+    return SizedBox(
+      height: pageSize.height,
+      child: SingleChildScrollView(
+        child: Column(
           children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8.0),
-              child: ElevatedButton(onPressed: () => handelClickAddProduct(), child: Text("เพิ่มสินค้า +")),
+            Flex(
+              direction: Axis.horizontal,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                  child: ElevatedButton(onPressed: () => handelClickAddProduct(), child: Text("เพิ่มสินค้า +")),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                  child: TextButton(onPressed: () => handleSubmitChangeProducts(isSubmit: true), style: successButtonStyle, child: Text("บันทึกเข้าระบบ")),
+                )
+              ],
             ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8.0),
-              child: TextButton(onPressed: () => submitChangeProducts(isSubmit: true), style: successButtonStyle, child: Text("บันทึกเข้าระบบ")),
+            Column(
+              children: List.generate(productItems.length, (index) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4.0),
+                  child: ListTile(
+                    // leading: CircleAvatar(child: Text("${index + 1}")),
+                    title: TextField(
+                        onChanged: (val) => productItems[index].name = val,
+                        controller: textControllers[index]['nameController'],
+                        decoration: InputDecoration(
+                          hintText: 'คลิกเพื่อแก้ไขชื่อสินค้า',
+                          icon: Icon(Icons.discount_outlined),
+                        )),
+                    subtitle: Flex(
+                      direction: Axis.horizontal,
+                      children: [
+                        SizedBox(
+                          height: 80,
+                          width: 150,
+                          child: TextField(
+                              onChanged: (val) => productItems[index].price = double.tryParse(val),
+                              controller: textControllers[index]['priceController'],
+                              decoration: InputDecoration(
+                                hintText: 'คลิกเพื่อแก้ไขราคา',
+                                icon: Icon(Icons.monetization_on_outlined),
+                              )),
+                        )
+                      ],
+                    ),
+                    trailing: IconButton(
+                      style: deleteButtonStyle,
+                      icon: Icon(Icons.delete_forever_outlined),
+                      onPressed: () => handleDeleteProduct(index),
+                    ),
+                  ),
+                );
+              }),
             )
           ],
         ),
-        SizedBox(
-            height: pageSize.height * 0.75,
-            child: SingleChildScrollView(
-              scrollDirection: Axis.vertical,
-              child: Column(
-                children: List.generate(productItems.length, (index) {
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4.0),
-                    child: ListTile(
-                      // leading: CircleAvatar(child: Text("${index + 1}")),
-                      title: TextField(
-                          onChanged: (val) => productItems[index].name = val,
-                          controller: textControllers[index]['nameController'],
-                          decoration: InputDecoration(
-                            hintText: 'คลิกเพื่อแก้ไขชื่อสินค้า',
-                            icon: Icon(Icons.discount_outlined),
-                          )),
-                      subtitle: Flex(
-                        direction: Axis.horizontal,
-                        children: [
-                          SizedBox(
-                            height: 80,
-                            width: 150,
-                            child: TextField(
-                                onChanged: (val) => productItems[index].price = double.tryParse(val),
-                                controller: textControllers[index]['priceController'],
-                                decoration: InputDecoration(
-                                  hintText: 'คลิกเพื่อแก้ไขราคา',
-                                  icon: Icon(Icons.monetization_on_outlined),
-                                )),
-                          )
-                        ],
-                      ),
-                      trailing: IconButton(
-                        style: deleteButtonStyle,
-                        icon: Icon(Icons.delete_forever_outlined),
-                        onPressed: () => handleDeleteProduct(index),
-                      ),
-                    ),
-                  );
-                }),
-              ),
-            ))
-      ],
+      ),
     );
   }
 }
@@ -200,7 +425,7 @@ class BranchSelectView extends StatelessWidget {
                 (index) => Padding(
                       padding: const EdgeInsets.symmetric(vertical: 1, horizontal: 2),
                       child: ElevatedButton(
-                          onPressed: () => BlocProvider.of<PosshopBloc>(context).add(OpenPosPageEvent(SHOP_BRANCH[index].code)),
+                          onPressed: () => BlocProvider.of<PosshopBloc>(context).add(OpenPosPageEvent(shopCode: SHOP_BRANCH[index].code)),
                           child: Text(
                             "${SHOP_BRANCH[index].name}",
                             overflow: TextOverflow.fade,
