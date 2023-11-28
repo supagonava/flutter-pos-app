@@ -20,16 +20,17 @@ final class InitialState extends PosshopState {
 
 final class POSSellState extends PosshopState {
   final String shopCode;
+  final Shop shop;
   final int tableNumber;
   final List<Product> products;
   final List<Cart> carts;
   final PrinterBluetooth? printer;
 
-  POSSellState({required this.shopCode, required this.tableNumber, required this.products, required this.carts, this.printer});
+  POSSellState({required this.shopCode, required this.tableNumber, required this.products, required this.carts, this.printer, required this.shop});
 
   @override
   POSSellState copyWith({String? shopCode, int? tableNumber, List<Product>? products, List<Cart>? carts}) =>
-      POSSellState(shopCode: shopCode ?? this.shopCode, tableNumber: tableNumber ?? this.tableNumber, products: products ?? this.products, carts: carts ?? this.carts);
+      POSSellState(shopCode: shopCode ?? this.shopCode, tableNumber: tableNumber ?? this.tableNumber, products: products ?? this.products, carts: carts ?? this.carts, shop: shop);
 
   @override
   List<Object?> get props => [tableNumber, products, shopCode, carts];

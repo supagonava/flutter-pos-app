@@ -1,12 +1,13 @@
 import 'package:dimsummaster/src/app.dart';
+import 'package:dimsummaster/src/constants.dart';
 import 'package:dimsummaster/src/posshop/index.dart';
-// import 'package:dimsummaster/src/signin/signin_view.dart';
+import 'package:dimsummaster/src/signin/signin_view.dart';
 import 'package:esc_pos_bluetooth/esc_pos_bluetooth.dart';
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/services.dart';
 import "package:flutter_bloc/flutter_bloc.dart";
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:uuid/uuid.dart';
 
 class PosShopView extends StatelessWidget {
   static const routeName = "/home";
@@ -14,26 +15,7 @@ class PosShopView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<User?>(
-        stream: FirebaseAuth.instance.authStateChanges(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.active) {
-            // Check if the user is logged in
-            // if (snapshot.data == null) {
-            //   WidgetsBinding.instance.addPostFrameCallback((_) {
-            //     Navigator.of(context).pushReplacementNamed(SignInView.routeName);
-            //   });
-            // }
-            // User is logged in, show the main screen
-            // FirebaseAuth.instance.signInAnonymously();
-            return POSScreenView();
-          }
-
-          // Waiting for authentication state to be available
-          return Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
-        });
+    return POSScreenView();
   }
 }
 
@@ -42,50 +24,41 @@ class POSScreenView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // PrinterBluetooth? printer;
-    // var pageSize = MediaQuery.sizeOf(context);
-    // void signOutUser() async {
-    //   try {
-    //     await FirebaseAuth.instance.signOut();
-    //     print("User signed out successfully");
-    //     WidgetsBinding.instance.addPostFrameCallback((_) => Navigator.of(context).pushNamedAndRemoveUntil(SignInView.routeName, (route) => false));
-    //   } catch (e) {
-    //     print("Error signing out: $e");
-    //   }
-    // }
-
     return BlocListener<PosshopBloc, PosshopState>(
         listener: (context, state) {},
-        child: BlocBuilder<PosshopBloc, PosshopState>(builder: (context, state) {
-          String title = 'หน้าขายหลัก';
-          Widget pageBody = Center(child: Text("State ${state.toString()}..."));
-          List<Widget> appBarActions = [];
+        child: GestureDetector(
+          onTap: () => unfocus(context),
+          child: BlocBuilder<PosshopBloc, PosshopState>(builder: (context, state) {
+            String title = 'หน้าขายหลัก';
+            Widget pageBody = Center(child: Text("State ${state.toString()}..."));
+            List<Widget> appBarActions = [];
 
-          if (state is InitialState) {
-            title = 'กรุเลือกสาขาร้าน';
-            appBarActions = [IconButton(onPressed: () => SystemNavigator.pop(), icon: Icon(Icons.exit_to_app_outlined, color: Colors.redAccent))];
-            Widget shopHeaderWidgets = BranchSelectView();
-            pageBody = SingleChildScrollView(child: Column(children: [shopHeaderWidgets]));
-          } else if (state is POSSellState) {
-            title = '${SHOP_BRANCH.firstWhere((b) => b.code == state.shopCode).name}';
-            appBarActions = [
-              IconButton(onPressed: () => BlocProvider.of<PosshopBloc>(context).add(OpenSettingPageEvent(state.shopCode)), icon: Icon(Icons.settings)),
-              IconButton(onPressed: () => BlocProvider.of<PosshopBloc>(context).add(OpenPosPageEvent(shopCode: null)), icon: Icon(Icons.arrow_back_ios)),
-            ];
-            pageBody = posSellView(context, state);
-          } else if (state is SettingPageState) {
-            title = 'ตั้งค่าสินค้า';
-            appBarActions = [
-              IconButton(onPressed: () => BlocProvider.of<PosshopBloc>(context).add(OpenPosPageEvent(shopCode: state.shopCode)), icon: Icon(Icons.arrow_back_ios)),
-            ];
-            pageBody = SettingProductView();
-          }
-          return Scaffold(
-            appBar: AppBar(title: Text(title), actions: appBarActions),
-            body: pageBody,
-            resizeToAvoidBottomInset: true,
-          );
-        }));
+            if (state is InitialState) {
+              title = 'เข้าสู่ระบบ';
+              appBarActions = [IconButton(onPressed: () => SystemNavigator.pop(), icon: Icon(Icons.exit_to_app_outlined, color: Colors.redAccent))];
+              Widget shopHeaderWidgets = SigninView();
+              pageBody = SingleChildScrollView(child: Column(children: [shopHeaderWidgets]));
+            } else if (state is POSSellState) {
+              title = state.shop.name ?? state.shop.code ?? 'untitled shop';
+              appBarActions = [
+                IconButton(onPressed: () => BlocProvider.of<PosshopBloc>(context).add(OpenSettingPageEvent(state.shopCode)), icon: Icon(Icons.settings)),
+                IconButton(onPressed: () => BlocProvider.of<PosshopBloc>(context).add(OpenPosPageEvent(shopCode: null)), icon: Icon(Icons.arrow_back_ios)),
+              ];
+              pageBody = posSellView(context, state);
+            } else if (state is SettingPageState) {
+              title = 'ตั้งค่าสินค้า';
+              appBarActions = [
+                IconButton(onPressed: () => BlocProvider.of<PosshopBloc>(context).add(OpenPosPageEvent(shopCode: state.shopCode)), icon: Icon(Icons.arrow_back_ios)),
+              ];
+              pageBody = SettingProductView();
+            }
+            return Scaffold(
+              appBar: AppBar(title: Text(title), actions: appBarActions),
+              body: pageBody,
+              resizeToAvoidBottomInset: true,
+            );
+          }),
+        ));
   }
 }
 
@@ -150,7 +123,7 @@ class _PickPrinterDeviceViewState extends State<PickPrinterDeviceView> {
                   ),
                 );
                 Fluttertoast.showToast(msg: "กำลังพิมพ์ใบเสร็จ");
-                await printReciept(devices[index], widget.state, billingNo);
+                await printReciept(devices[index], widget.state, billingNo, widget.state.shop.name ?? widget.state.shopCode);
                 // Show the message dialog
               },
             ));
@@ -236,7 +209,7 @@ Widget posSellView(BuildContext context, POSSellState state) {
   void handleAddProductQTY({required Product product, int qty = 1}) {
     List<Cart> updatedCarts = [...state.carts];
 
-    final existCartIndex = updatedCarts.indexWhere((c) => c.product?.name == product.name && c.shopCode == state.shopCode && c.tableNumber == state.tableNumber);
+    final existCartIndex = updatedCarts.indexWhere((c) => c.product?.id == product.id && c.shopCode == state.shopCode && c.tableNumber == state.tableNumber);
     if (existCartIndex >= 0) {
       Cart existingCart = updatedCarts[existCartIndex];
       updatedCarts[existCartIndex] = Cart(
@@ -255,7 +228,7 @@ Widget posSellView(BuildContext context, POSSellState state) {
   void handleRemoveProductQTY({required Product product, int qty = 1}) {
     List<Cart> updatedCarts = [...state.carts];
 
-    final existCartIndex = updatedCarts.indexWhere((c) => c.product?.name == product.name);
+    final existCartIndex = updatedCarts.indexWhere((c) => c.product?.id == product.id);
     if (existCartIndex >= 0) {
       Cart existingCart = updatedCarts[existCartIndex];
       int newQuantity = (existingCart.quantity ?? 0) - qty;
@@ -380,7 +353,7 @@ class SettingProductView extends StatelessWidget {
     handelClickAddProduct() {
       var nameTextEditer = TextEditingController(text: "สินค้าใหม่ ${productItems.length + 1}");
       var priceTextEditer = TextEditingController(text: "0.00");
-      Product product = Product(name: nameTextEditer.text, price: double.tryParse(priceTextEditer.text));
+      Product product = Product(name: nameTextEditer.text, price: double.tryParse(priceTextEditer.text), id: Uuid().v4());
       productItems.add(product);
       handleSubmitChangeProducts();
     }
@@ -451,44 +424,5 @@ class SettingProductView extends StatelessWidget {
         ),
       ),
     );
-  }
-}
-
-class BranchSelectView extends StatelessWidget {
-  const BranchSelectView({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    TextEditingController codeInputTxtController = TextEditingController();
-    return Padding(
-        padding: const EdgeInsets.all(18),
-        child: Column(
-          children: [
-            TextField(controller: codeInputTxtController, decoration: InputDecoration(hintText: "กรอกโค้ดร้าน"), maxLength: 5),
-            ElevatedButton(
-                onPressed: (() {
-                  // print(codeInputTxtController.text);
-                  if (SHOP_BRANCH.indexWhere((s) => s.code == codeInputTxtController.text) >= 0) {
-                    BlocProvider.of<PosshopBloc>(context).add(OpenPosPageEvent(shopCode: codeInputTxtController.text));
-                  } else {
-                    Fluttertoast.showToast(msg: "โค้ดไม่ถูกต้อง");
-                  }
-                }),
-                child: Text("เข้าสู่ระบบ"))
-            // Wrap(
-            //     children: List.generate(
-            //         SHOP_BRANCH.length,
-            //         (index) => Padding(
-            //               padding: const EdgeInsets.symmetric(vertical: 1, horizontal: 2),
-            //               child: ElevatedButton(
-            //                   onPressed: () => BlocProvider.of<PosshopBloc>(context).add(OpenPosPageEvent(shopCode: SHOP_BRANCH[index].code)),
-            //                   child: Text(
-            //                     "${SHOP_BRANCH[index].name}",
-            //                     overflow: TextOverflow.fade,
-            //                     style: defaultButtonTextStyle,
-            //                   )),
-            //             ))),
-          ],
-        ));
   }
 }

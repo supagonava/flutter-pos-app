@@ -1,5 +1,5 @@
 name: dimsummaster
-description: 'A new Flutter project.'
+description: 'SIMPLE POS  ของ Supakorn Emchananon'
 
 # Prevent accidental publishing to pub.dev.
 publish_to: 'none'
@@ -32,6 +32,7 @@ dependencies:
   rename: ^3.0.1
   rxdart: ^0.26.0
   sunmi_printer_plus: ^2.1.2
+  uuid: ^4.2.1
 
 dev_dependencies:
   flutter_test:

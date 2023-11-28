@@ -1,9 +1,9 @@
+import 'package:dimsummaster/src/shopregister/shopregister_view.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:dimsummaster/src/posshop/posshop_view.dart';
-import 'package:dimsummaster/src/signin/signin_view.dart';
 
-export "helper.dart";
+export '../helper.dart';
 
 const defaultButtonTextStyle = TextStyle(fontSize: 12);
 var deleteButtonStyle = ElevatedButton.styleFrom(
@@ -43,10 +43,12 @@ class MyApp extends StatelessWidget {
         return MaterialPageRoute<void>(
           settings: routeSettings,
           builder: (BuildContext context) {
-            if (routeSettings.name == SignInView.routeName) {
-              return const SignInView();
+            if (['/', PosShopView.routeName].contains(routeSettings.name)) {
+              return const PosShopView();
+            } else if (routeSettings.name == ShopRegisterView.routeName) {
+              return const ShopRegisterView();
             }
-            return const PosShopView();
+            return Scaffold(body: Center(child: Text("${routeSettings.name} Not found this page route.")));
           },
         );
       },

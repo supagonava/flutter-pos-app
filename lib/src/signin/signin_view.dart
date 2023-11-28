@@ -1,79 +1,52 @@
-import 'package:dimsummaster/src/posshop/posshop_view.dart';
+import 'package:dimsummaster/services.dart';
+import 'package:dimsummaster/src/posshop/index.dart';
+import 'package:dimsummaster/src/shopregister/shopregister_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'index.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 
-class SignInView extends StatelessWidget {
-  static const routeName = "/signin";
-  const SignInView({super.key});
+class SigninView extends StatelessWidget {
+  const SigninView({super.key});
 
   @override
   Widget build(BuildContext context) {
-    var screenSize = MediaQuery.of(context).size;
-    final phoneTextInputController = TextEditingController();
-    final otpTextInputController = TextEditingController();
+    TextEditingController codeInputTxtController = TextEditingController();
+    handleSignin() async {
+      final Shop? shopProfile = await getShopBranch(codeInputTxtController.text);
+      if (shopProfile != null) {
+        BlocProvider.of<PosshopBloc>(context).add(OpenPosPageEvent(shopCode: shopProfile.code));
+      } else {
+        Fluttertoast.showToast(msg: "ไม่พบร้านดังกล่าว");
+      }
+    }
 
-    return BlocListener<SigninBloc, SigninState>(
-      listener: (context, state) {
-        if (state is SigninSuccess) {
-          Navigator.of(context).pushReplacementNamed('/');
-        } else if (state is SigninSuccess) {
-          Navigator.of(context).pushNamedAndRemoveUntil(PosShopView.routeName, (route) => false);
-        }
-      },
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text("Login Page"),
-          centerTitle: true,
-        ),
-        body: SizedBox(
-          height: screenSize.height - 56,
-          width: screenSize.width,
-          child: GestureDetector(
-            onTap: () => FocusScope.of(context).unfocus(),
-            child: Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: BlocBuilder<SigninBloc, SigninState>(
-                builder: (context, state) {
-                  if (state is CodeSentState) {
-                    return Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        TextField(
-                          controller: otpTextInputController,
-                          keyboardType: TextInputType.number,
-                          maxLength: 6,
-                          decoration: InputDecoration(border: OutlineInputBorder(), labelText: "กรอก OTP"),
-                        ),
-                        ElevatedButton(
-                          onPressed: () => {BlocProvider.of<SigninBloc>(context).add(SignInWithOTP(otpTextInputController.text, state.verificationId))},
-                          child: const Text("ยืนยัน OTP"),
-                        )
-                      ],
-                    );
-                  } else {
-                    return Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        TextField(
-                          controller: phoneTextInputController,
-                          decoration: InputDecoration(border: OutlineInputBorder(), labelText: "กรอกเบอร์ 10 หลัก"),
-                          keyboardType: TextInputType.number,
-                          maxLength: 10,
-                        ),
-                        ElevatedButton(
-                          onPressed: () => BlocProvider.of<SigninBloc>(context).add(VerifyPhoneNumber(phoneTextInputController.text)),
-                          child: const Text("ขอ OTP เข้าระบบ"),
-                        )
-                      ],
-                    );
-                  }
-                },
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
+    return Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          children: [
+            TextField(controller: codeInputTxtController, decoration: InputDecoration(hintText: "กรอกโค้ดร้าน"), maxLength: 5),
+            Flex(
+              direction: Axis.horizontal,
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                ElevatedButton(onPressed: (() async => handleSignin()), child: Text("เข้าสู่ระบบ")),
+                ElevatedButton(onPressed: (() => Navigator.of(context).pushNamed(ShopRegisterView.routeName)), child: Text("ลงทะเบียนร้าน"))
+              ],
+            )
+            // Wrap(
+            //     children: List.generate(
+            //         SHOP_BRANCH.length,
+            //         (index) => Padding(
+            //               padding: const EdgeInsets.symmetric(vertical: 1, horizontal: 2),
+            //               child: ElevatedButton(
+            //                   onPressed: () => BlocProvider.of<PosshopBloc>(context).add(OpenPosPageEvent(shopCode: SHOP_BRANCH[index].code)),
+            //                   child: Text(
+            //                     "${SHOP_BRANCH[index].name}",
+            //                     overflow: TextOverflow.fade,
+            //                     style: defaultButtonTextStyle,
+            //                   )),
+            //             ))),
+          ],
+        ));
   }
 }
