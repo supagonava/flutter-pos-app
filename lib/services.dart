@@ -15,9 +15,18 @@ getShopBranch(String shopCode) async {
     for (var p in queryData['products'] ?? []) {
       products.add(Product(name: p['name'], price: double.tryParse("${p['price']}"), id: p['id']));
     }
-    return Shop(code: shopCode, name: queryData['name'] ?? 'untitled-shop', products: products);
+    List<Map<String, String>> contacts = [];
+    for (var contact in queryData['contacts'] ?? []) {
+      contacts.add({'contact': contact['contact'] ?? '', 'phone': contact['phone'] ?? ''});
+    }
+    return Shop(code: shopCode, name: queryData['name'] ?? 'untitled-shop', products: products, contacts: contacts);
   }
   return null;
+}
+
+updateShopBranch(Shop shop) async {
+  var shopDoc = FirebaseFirestore.instance.collection(shopBranchesRootPath).doc(shop.code);
+  await shopDoc.update({"contacts": shop.contacts, "name": shop.name});
 }
 
 addShopBranch({String shopcode = '', String shopname = ''}) async {

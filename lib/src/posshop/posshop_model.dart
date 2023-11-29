@@ -2,8 +2,9 @@ class Shop {
   String? code;
   String? name;
   List<Product>? products;
+  List<Map<String, String>>? contacts;
 
-  Shop({this.code, this.name, this.products});
+  Shop({this.code, this.name, this.products, this.contacts});
 }
 
 class Product {

@@ -1,6 +1,7 @@
 import 'package:dimsummaster/src/app.dart';
 import 'package:dimsummaster/src/constants.dart';
 import 'package:dimsummaster/src/posshop/index.dart';
+import 'package:dimsummaster/src/shopsetting/shopsetting_view.dart';
 import 'package:dimsummaster/src/signin/signin_view.dart';
 import 'package:esc_pos_bluetooth/esc_pos_bluetooth.dart';
 import 'package:flutter/material.dart';
@@ -39,9 +40,17 @@ class POSScreenView extends StatelessWidget {
               Widget shopHeaderWidgets = SigninView();
               pageBody = SingleChildScrollView(child: Column(children: [shopHeaderWidgets]));
             } else if (state is POSSellState) {
-              title = state.shop.name ?? state.shop.code ?? 'untitled shop';
+              title = "${state.shop.name} (${state.shop.code})";
               appBarActions = [
-                IconButton(onPressed: () => BlocProvider.of<PosshopBloc>(context).add(OpenSettingPageEvent(state.shopCode)), icon: Icon(Icons.settings)),
+                IconButton(
+                    onPressed: () async {
+                      Shop? shopSetting = await Navigator.of(context).push(MaterialPageRoute(builder: (builder) => ShopSettingView(shop: state.shop)));
+                      if (shopSetting != null) {
+                        BlocProvider.of<PosshopBloc>(context).add(OpenPosPageEvent(shopCode: state.shopCode, tableNo: state.tableNumber));
+                      }
+                    },
+                    icon: Icon(Icons.settings)),
+                IconButton(onPressed: () => BlocProvider.of<PosshopBloc>(context).add(OpenSettingPageEvent(state.shopCode)), icon: Icon(Icons.list_alt)),
                 IconButton(onPressed: () => BlocProvider.of<PosshopBloc>(context).add(OpenPosPageEvent(shopCode: null)), icon: Icon(Icons.arrow_back_ios)),
               ];
               pageBody = posSellView(context, state);

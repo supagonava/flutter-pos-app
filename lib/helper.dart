@@ -9,6 +9,7 @@ getPageSize(BuildContext context) => MediaQuery.of(context).size;
 unfocus(ctx) => FocusScope.of(ctx).unfocus();
 printReciept(PrinterBluetooth? printer, POSSellState printState, String billingNo, String shopname) async {
   PrinterBluetoothManager printerManager = PrinterBluetoothManager();
+  final Shop shop = printState.shop;
   if (printer != null) {
     try {
       byteThaiChar(message) async => await CharsetConverter.encode('TIS-620', '$message');
@@ -57,8 +58,11 @@ printReciept(PrinterBluetooth? printer, POSSellState printState, String billingN
       bytes += generator.textEncoded((await byteThaiChar('ขอบพระคุณที่มาอุดหนุนค่ะ')), styles: PosStyles(align: PosAlign.left));
       bytes += generator.textEncoded((await byteThaiChar('โอกาสหน้าเชิญชวนอีกครั้งนะคะ')), styles: PosStyles(align: PosAlign.left));
       bytes += generator.textEncoded((await byteThaiChar('ติดต่อร้าน')), styles: PosStyles(align: PosAlign.left));
-      bytes += generator.textEncoded((await byteThaiChar('k\'บอย 0923457633')), styles: PosStyles(align: PosAlign.left));
-      bytes += generator.textEncoded((await byteThaiChar('k\'ผึ้ง 0928707863')), styles: PosStyles(align: PosAlign.left));
+      for (var contact in shop.contacts ?? []) {
+        if (contact['contact'].toString().isNotEmpty) {
+          bytes += generator.textEncoded((await byteThaiChar('${contact['contact'] ?? ''} ${contact['phone'] ?? ''}')), styles: PosStyles(align: PosAlign.left));
+        }
+      }
       bytes += generator.emptyLines(1);
       bytes += generator.text('-------THANK YOU!---------', styles: PosStyles(align: PosAlign.center));
       bytes += generator.emptyLines(3);

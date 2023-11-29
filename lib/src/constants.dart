@@ -1,5 +1,3 @@
-import 'package:dimsummaster/src/posshop/index.dart';
-
 const Map<int, String> TABLE_NAMES = {
   0: "สั่งกลับบ้าน",
   1: "โต๊ะ 1",
