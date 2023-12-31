@@ -51,15 +51,28 @@ class PosshopBloc extends Bloc<PosshopEvent, PosshopState> {
 
   submitPurchaseOrder(SubmitPurchaseOrderEvent ev, Emitter<PosshopState> em) async {
     final prevState = (state as POSSellState).copyWith();
-    final Map<String, dynamic> billPayload = {
-      "datetime": DateTime.now().toLocal().toString(),
-      "carts": prevState.carts.map((c) => c.toMap()),
-      "shopCode": prevState.shopCode,
-      "tableNumber": prevState.tableNumber,
-    };
+    // final Map<String, dynamic> billPayload = {
+    //   "datetime": DateTime.now().toLocal().toString(),
+    //   "carts": prevState.carts.map((c) => c.toMap()),
+    //   "shopCode": prevState.shopCode,
+    //   "tableNumber": prevState.tableNumber,
+    // };
+    String detailStr = "";
+    double totalAmount = 0;
+    for (var cartItem in prevState.carts) {
+      double recordAmount = (cartItem.product?.price ?? 0) * (cartItem.quantity ?? 1);
+      detailStr += "${cartItem.product?.name} (${cartItem.product?.price ?? 0} x ${cartItem.quantity}) $recordAmount\n";
+      totalAmount += recordAmount;
+    }
 
-    var firebaseCollection = FirebaseFirestore.instance.collection(billingRootPath).doc(ev.billingNo);
-    firebaseCollection.set(billPayload);
+    insertRecordToSheet(prevState.shopCode, [
+      ev.billingNo,
+      DateTime.now().toLocal().toString(),
+      detailStr.trim(),
+      totalAmount,
+    ]);
+    // var firebaseCollection = FirebaseFirestore.instance.collection(billingRootPath).doc(ev.billingNo);
+    // firebaseCollection.set(billPayload);
 
     final newState = prevState.copyWith(carts: []);
     em(newState);

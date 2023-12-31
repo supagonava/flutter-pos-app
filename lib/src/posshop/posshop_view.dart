@@ -1,3 +1,4 @@
+import 'package:dimsummaster/services.dart';
 import 'package:dimsummaster/src/app.dart';
 import 'package:dimsummaster/src/constants.dart';
 import 'package:dimsummaster/src/posshop/index.dart';
@@ -9,6 +10,7 @@ import 'package:flutter/services.dart';
 import "package:flutter_bloc/flutter_bloc.dart";
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:uuid/uuid.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class PosShopView extends StatelessWidget {
   static const routeName = "/home";
@@ -290,6 +292,26 @@ Widget posSellView(BuildContext context, POSSellState state) {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            ElevatedButton(
+              onPressed: () async {
+                Fluttertoast.showToast(msg: "กำลังเปิดหน้า History");
+                var url = "https://docs.google.com/spreadsheets/";
+                var sheetURL = await getHistorySheetURL(state.shopCode);
+                if (!sheetURL['status']) {
+                  Fluttertoast.showToast(msg: "ล้มเหลวในการเปิด");
+                } else {
+                  url = sheetURL['url'] + "/edit#gid=0";
+                  Fluttertoast.showToast(msg: "กำลังเปิด $url");
+                  await launchUrl(Uri.parse(url));
+                }
+              },
+              child: Text("ดูประวัติขาย"),
+            ),
+          ],
+        ),
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 4),
           child: Flex(direction: Axis.horizontal, children: [Text("ที่กำลังบริการ :")]),
@@ -314,7 +336,7 @@ Widget posSellView(BuildContext context, POSSellState state) {
         ),
         Divider(),
         SizedBox(
-          height: pageSize.height * 0.5,
+          height: pageSize.height * 0.43,
           width: pageSize.width,
           child: SingleChildScrollView(child: Column(children: productListPOSWidget)),
         ),

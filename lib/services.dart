@@ -1,3 +1,5 @@
+import 'dart:convert';
+import "package:http/http.dart" as http;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dimsummaster/src/posshop/index.dart';
 
@@ -64,3 +66,27 @@ getCartsInBranceTable(String shopCode, int tableNo) async {
 }
 
 getUsersInBrance({String shopCode = ""}) async {}
+
+insertRecordToSheet(String shopname, List<dynamic> row) async {
+  const scriptID = "AKfycbyWv1SRZvUWcK-B3pklFjwOHsm1GrTdPgKpLaEP15peYpLTh2UBOwATv-gxh0OjaCDV";
+  var headers = {'Content-Type': 'application/json'};
+  var body = jsonEncode({"database_name": shopname, "row": row});
+  var response = await http.post(
+    Uri.parse("https://script.google.com/macros/s/$scriptID/exec"),
+    body: body,
+    headers: headers,
+  );
+  return response.statusCode;
+}
+
+getHistorySheetURL(String shopCode) async {
+  const scriptID = "AKfycbwGb6rtICaHiMxCr8W177KMpEsOXhTrMHIyLefP2CMp9Zcq1KDxhH2nM8BOJD8AeLHX5Q";
+  final url = Uri.parse("https://script.google.com/macros/s/$scriptID/exec?database_name=$shopCode");
+  var response = await http.get(url);
+  Map<String, dynamic> responseObject = {"status": false};
+  print(response.body);
+  if (response.statusCode == 200) {
+    responseObject = json.decode(response.body);
+  }
+  return responseObject;
+}
