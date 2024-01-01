@@ -67,6 +67,7 @@ class PosshopBloc extends Bloc<PosshopEvent, PosshopState> {
 
     insertRecordToSheet(prevState.shopCode, [
       ev.billingNo,
+      ev.tableNumber,
       DateTime.now().toLocal().toString(),
       detailStr.trim(),
       totalAmount,

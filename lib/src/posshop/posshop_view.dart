@@ -303,7 +303,7 @@ Widget posSellView(BuildContext context, POSSellState state) {
                 if (!sheetURL['status']) {
                   Fluttertoast.showToast(msg: "ล้มเหลวในการเปิด");
                 } else {
-                  url = sheetURL['url'] + "/edit#gid=0";
+                  url = sheetURL['url'];
                   Fluttertoast.showToast(msg: "กำลังเปิด $url");
                   await launchUrl(Uri.parse(url));
                 }
