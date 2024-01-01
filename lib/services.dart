@@ -68,7 +68,7 @@ getCartsInBranceTable(String shopCode, int tableNo) async {
 getUsersInBrance({String shopCode = ""}) async {}
 
 insertRecordToSheet(String shopname, List<dynamic> row) async {
-  const scriptID = "AKfycbyWv1SRZvUWcK-B3pklFjwOHsm1GrTdPgKpLaEP15peYpLTh2UBOwATv-gxh0OjaCDV";
+  const scriptID = "AKfycbxf49zXUxo2m_jUHC1fWpIa1mI_mq92JPFSMhC-uU7BPxpUsIVtfG0UUHLAgz0V1LYj";
   var headers = {'Content-Type': 'application/json'};
   var body = jsonEncode({"database_name": shopname, "row": row});
   var response = await http.post(
