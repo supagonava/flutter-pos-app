@@ -10,7 +10,7 @@ class SigninView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    TextEditingController codeInputTxtController = TextEditingController();
+    TextEditingController codeInputTxtController = TextEditingController(text: "a9da1");
     handleSignin() async {
       final Shop? shopProfile = await getShopBranch(codeInputTxtController.text);
       if (shopProfile != null) {
